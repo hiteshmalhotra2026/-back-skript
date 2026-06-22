@@ -1,4 +1,4 @@
-# Back Teleport Skript
+# Back Skript
 
 A lightweight and configurable Minecraft Skript that allows players to return to their previous death location using `/back`.
 
