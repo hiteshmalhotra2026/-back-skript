@@ -1,0 +1,84 @@
+########################################################################
+# +------------------------------------------------------------------+ #
+#                                                                    #
+#    ____     _     ____   _  __                                     #
+#   | __ )   / \   / ___| | |/ /                                     #
+#   |  _ \  / _ \ | |     | ' /                                      #
+#   | |_) |/ ___ \| |___  | . \                                      #
+#   |____//_/   \_\\____| |_|\_\                                     #
+#                                                                    #
+#                                                                    #
+#              by HACK Studio  |  Developer: itzz_hitesh             #
+#                   /back — Return to death location                 #
+#                                                                    #
+# +------------------------------------------------------------------+ #
+########################################################################
+
+options:
+    back-delay: 3
+    back-valid-time: 300
+
+# -----------------------------------------------------
+# Save death location
+# -----------------------------------------------------
+on death:
+    victim is a player
+    set {back.deathloc.%victim%} to location of victim
+    set {back.time.%victim%} to now
+    send "&7Use &e&n/back&r &7within <#00FFDD>5 minutes &7to return to your death location." to victim
+
+# -----------------------------------------------------
+# /back Command
+# -----------------------------------------------------
+command /back:
+    permission: back.use
+    trigger:
+        if {back.deathloc.%player%} is not set:
+            send "&cYou have no death location saved!" to player
+            stop
+        if {back.waiting.%player%} is true:
+            send "&cTeleport already in progress!" to player
+            stop
+        set {_timePassed} to difference between now and {back.time.%player%}
+        if {_timePassed} > {@back-valid-time} seconds:
+            delete {back.deathloc.%player%}
+            delete {back.time.%player%}
+            send "&cYour death location has expired!" to player
+            stop
+        set {back.waiting.%player%} to true
+        set {back.startloc.%player%} to location of player
+        loop {@back-delay} times:
+            if {back.waiting.%player%} is not true:
+                stop
+            set {_seconds} to {@back-delay} - loop-number + 1
+            send action bar "&fTeleporting in <#00FFDD>%{_seconds}% &fseconds... &cDon't move!" to player
+            play sound "entity.player.levelup" to player
+            wait 1 second
+        if {back.waiting.%player%} is true:
+            teleport player to {back.deathloc.%player%}
+            play sound "entity.enderman.teleport" to player
+            send action bar "&aTeleported to your death location!" to player
+            delete {back.deathloc.%player%}
+            delete {back.time.%player%}
+            delete {back.waiting.%player%}
+            delete {back.startloc.%player%}
+
+# -----------------------------------------------------
+# Cancel teleport if player moves
+# -----------------------------------------------------
+on player move:
+    if {back.waiting.%player%} is not true:
+        stop
+    if distance between location of player and {back.startloc.%player%} > 0.3:
+        delete {back.waiting.%player%}
+        delete {back.startloc.%player%}
+        send action bar "&c✖ Teleport cancelled!" to player
+        play sound "entity.villager.no" to player
+
+# -----------------------------------------------------
+# Cleanup on disconnect
+# -----------------------------------------------------
+on quit:
+    if {back.waiting.%player%} is true:
+        delete {back.waiting.%player%}
+        delete {back.startloc.%player%}
